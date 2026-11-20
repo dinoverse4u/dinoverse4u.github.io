@@ -1047,6 +1047,8 @@ function btn(){$("#impactPlay").textContent=playing&&!snd&&!userMuted?"🔊 Со
 function play(user){filmLoad();if(rt>=RT){rt=0;t=0}if(user){audioInit();if(AC&&AC.state==="suspended")AC.resume()}else snd=false;
  playing=true;last=performance.now();btn();const cap=$("#impactCap");cap.dataset.i="";requestAnimationFrame(loop)}
 function pause(){playing=false;audioStop();btn()}
+// leaving the dinosaur era hides the film: stop it there instead of letting it play on unseen
+new MutationObserver(()=>{if(document.body.dataset.era!=="mz"&&playing){if(cv.closest(".film").classList.contains("fs"))$("#impactFs").click();pause()}}).observe(document.body,{attributes:true,attributeFilter:["data-era"]});
 $("#impactPlay").onclick=()=>{if(playing&&snd)pause();else if(playing){snd=!userMuted;audioInit();if(AC&&AC.state==="suspended")AC.resume();vaSeg=-1;btn()}else{snd=!userMuted;play(true)}};
 $("#impactSnd").onclick=()=>{snd=!snd;userMuted=!snd;if(snd){audioInit();if(AC&&AC.state==="suspended")AC.resume();vaSeg=-1}else{audioStop()}btn()};
 $("#impactBar").addEventListener("pointerdown",e=>{const b=e.currentTarget.getBoundingClientRect();rt=cl((e.clientX-b.left)/b.width)*RT;t=vis(rt);voStop();$("#impactCap").dataset.i="";draw();btn()});
