@@ -223,7 +223,14 @@ section.s h2{font-weight:900;font-size:clamp(28px,4vw,44px);letter-spacing:-.02e
 .film.fs .film-ui{position:absolute!important;left:calc(16px + env(safe-area-inset-left));right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));padding:0;background:none!important}
 body.fs-lock{overflow:hidden}
 .film-bar{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.18);cursor:pointer;position:relative}
-.film-bar::before{content:"";position:absolute;inset:-10px 0}
+.film-bar::before{content:"";position:absolute;inset:-14px 0}
+.film-bar b{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5);left:0;transition:transform .15s}
+.film-bar:hover b,.film-bar.drag b{transform:scale(1.25)}.film-bar.drag{cursor:grabbing}.film-bar{touch-action:none}
+.film-time{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.8);flex:none}
+@media (max-width:640px){.film .film-ui{flex-wrap:wrap;row-gap:14px;column-gap:8px}.film .film-ui .btn{padding-left:14px;padding-right:14px}.film .film-ui .fs-btn{padding:0}.film-time{font-size:12px}.film .film-bar{order:-1;flex:1 0 100%;height:8px}.film .fs-btn{margin-left:auto}}
+#impactCv{cursor:pointer;touch-action:manipulation}
+.film-tap{position:absolute;left:50%;top:42%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:rgba(0,0,0,.5);display:grid;place-items:center;pointer-events:none;opacity:0;transform:scale(.8);transition:opacity .35s,transform .35s;z-index:3}
+.film-tap.show{opacity:1;transform:none}.film-tap svg{width:34px;height:34px;fill:#fff}
 .film-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#ffcf70,#ff6a1f)}
 .impact-link{display:inline-block;margin-top:18px;color:var(--ext);font-weight:600;font-size:15px;text-decoration:none}
 .impact-link:hover{text-decoration:underline}
@@ -507,7 +514,7 @@ dialog::backdrop{background:rgba(6,10,16,.7);backdrop-filter:blur(4px)}
     <div class="film">
       <canvas id="impactCv" aria-label="Анимация: падение астероида и вымирание динозавров"></canvas>
       <div class="film-cap" id="impactCap" aria-live="polite"></div>
-      <div class="film-ui"><button class="btn" id="impactPlay">▶ Смотреть</button><button class="btn" id="impactSnd" aria-pressed="true" title="Голос и звук">🔊</button><div class="film-bar" id="impactBar"><i id="impactFill"></i></div><button class="btn fs-btn" id="impactFs" title="Во весь экран" aria-label="Смотреть во весь экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button></div>
+      <div class="film-ui"><button class="btn" id="impactPlay">▶ Смотреть</button><button class="btn" id="impactSnd" aria-pressed="true" title="Голос и звук">🔊</button><div class="film-bar" id="impactBar" role="slider" tabindex="0" aria-label="Время фильма"><i id="impactFill"></i><b id="impactKnob"></b></div><span class="film-time num" id="impactTime">0:00 / 2:05</span><button class="btn fs-btn" id="impactFs" title="Во весь экран" aria-label="Смотреть во весь экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button></div>
     </div>
     <div class="ext">
       <div class="txt glass"><p>У полуострова Юкатан в Мексике упал астероид. Небо закрыла пыль, и Земля на годы остыла.</p><p>Исчезли все динозавры, кроме птиц, а вместе с ними птерозавры, морские ящеры и аммониты. Освободившийся мир заняли млекопитающие, а потом и мы.</p></div>
@@ -999,7 +1006,7 @@ function draw(){
  const vg=c.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,"rgba(0,0,0,.5)");c.fillStyle=vg;c.fillRect(0,0,W,H);
  // ui
  const ci=segAt(rt),cap=$("#impactCap");if(cap.dataset.i!=ci){cap.dataset.i=ci;cap.classList.remove("in");void cap.offsetWidth;cap.textContent=SEG[ci].cap;cap.classList.add("in")}
- $("#impactFill").style.width=(rt/RT*100)+"%";
+ {const f=rt/RT*100,mm=x=>Math.floor(x/60)+":"+String(Math.floor(x%60)).padStart(2,"0");$("#impactFill").style.width=f+"%";$("#impactKnob").style.left=f+"%";$("#impactTime").textContent=mm(rt)+" / "+mm(RT);$("#impactBar").setAttribute("aria-valuenow",Math.round(rt))}
 }
 // ---- voice-over (browser speech, Russian) and trailer sound (Web Audio) ----
 let snd=true,userMuted=false,AC=null,AU=null;const VA=new Audio();VA.preload="auto";let vaTry=0,vaLast=-1;
@@ -1051,7 +1058,23 @@ function pause(){playing=false;audioStop();btn()}
 new MutationObserver(()=>{if(document.body.dataset.era!=="mz"&&playing){if(cv.closest(".film").classList.contains("fs"))$("#impactFs").click();pause()}}).observe(document.body,{attributes:true,attributeFilter:["data-era"]});
 $("#impactPlay").onclick=()=>{if(playing&&snd)pause();else if(playing){snd=!userMuted;audioInit();if(AC&&AC.state==="suspended")AC.resume();vaSeg=-1;btn()}else{snd=!userMuted;play(true)}};
 $("#impactSnd").onclick=()=>{snd=!snd;userMuted=!snd;if(snd){audioInit();if(AC&&AC.state==="suspended")AC.resume();vaSeg=-1}else{audioStop()}btn()};
-$("#impactBar").addEventListener("pointerdown",e=>{const b=e.currentTarget.getBoundingClientRect();rt=cl((e.clientX-b.left)/b.width)*RT;t=vis(rt);voStop();$("#impactCap").dataset.i="";draw();btn()});
+{const bar=$("#impactBar");let drag=false,was=false;
+ const seek=e=>{const b=bar.getBoundingClientRect();rt=cl((e.clientX-b.left)/b.width)*RT;t=vis(rt);$("#impactCap").dataset.i="";draw();btn()};
+ bar.addEventListener("pointerdown",e=>{e.preventDefault();drag=true;was=playing;if(playing){playing=false;audioStop()}bar.classList.add("drag");bar.setPointerCapture(e.pointerId);seek(e)});
+ bar.addEventListener("pointermove",e=>{if(drag)seek(e)});
+ const end=e=>{if(!drag)return;drag=false;bar.classList.remove("drag");if(was)play(true);else btn()};
+ bar.addEventListener("pointerup",end);bar.addEventListener("pointercancel",end);
+ bar.addEventListener("keydown",e=>{const d=e.key==="ArrowRight"?5:e.key==="ArrowLeft"?-5:0;if(d){e.preventDefault();rt=Math.max(0,Math.min(RT,rt+d));t=vis(rt);$("#impactCap").dataset.i="";if(!playing)draw();else voStop()}});}
+// tap the picture to pause or play, with a short icon in the middle
+{const F=cv.closest(".film"),tap=document.createElement("div");tap.className="film-tap";F.appendChild(tap);let tt=0;
+ const flash=on=>{tap.innerHTML=on?'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>':'<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';tap.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>tap.classList.remove("show"),600)};
+ window.impactToggle=()=>{if(playing&&(snd||userMuted)){pause();flash(false)}else if(playing){snd=true;audioInit();if(AC&&AC.state==="suspended")AC.resume();btn()}else{snd=!userMuted;play(true);flash(true)}};
+ cv.addEventListener("click",impactToggle);
+ addEventListener("keydown",e=>{if(e.code!=="Space"||/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName))return;const r=cv.getBoundingClientRect();if(r.bottom<innerHeight*.3||r.top>innerHeight*.7)return;e.preventDefault();impactToggle()});
+ // stop when the viewer leaves: another tab or app, closing the page, or scrolling the film out of sight
+ document.addEventListener("visibilitychange",()=>{if(document.hidden&&playing)pause()});
+ addEventListener("pagehide",()=>{if(playing)pause()});
+ new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting&&playing&&!F.classList.contains("fs"))pause()})},{threshold:.25}).observe(cv);}
 new ResizeObserver(size).observe(cv);
 // full screen button: real full screen when the browser allows it, otherwise (iPhone) a fixed overlay
 {const F=cv.closest(".film"),B=$("#impactFs"),req=F.requestFullscreen||F.webkitRequestFullscreen,fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
