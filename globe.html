@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Планета динозавров</title>
+<meta name="description" content="Интерактивный глобус: где на Земле нашли динозавров. Крути планету, приближай и открывай карточки.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap">
+<style>
+:root{--bg:#05080d;--ink:#F3F1EA;--muted:rgba(243,241,234,.66);--line:rgba(255,255,255,.12);--acc:#F5A524;--T:#A05DA5;--J:#34B2C9;--K:#7FC64E;--pc:var(--K)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+header{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(18px + env(safe-area-inset-top)) 24px 0;pointer-events:none;text-align:center}
+.brand{position:absolute;left:24px;top:calc(20px + env(safe-area-inset-top));font-weight:800;font-size:15px;color:var(--ink);text-decoration:none;pointer-events:auto;opacity:.85}
+.brand:hover{opacity:1}.brand i{color:var(--acc);font-style:normal}
+h1{font-weight:900;font-size:clamp(30px,5.4vw,64px);letter-spacing:-.035em;line-height:1;margin-top:34px;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.sub{margin-top:10px;font-size:clamp(13px,1.5vw,16px);color:var(--muted);font-weight:600}
+.eras{display:inline-flex;gap:6px;margin-top:18px;padding:5px;border-radius:999px;background:rgba(10,14,20,.6);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:auto}
+.eras button{font:inherit;font-size:14px;font-weight:700;color:var(--muted);background:none;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.eras button small{font-size:10.5px;font-weight:600;opacity:.75;margin-top:2px}
+.eras button.on{color:#0b0d10;background:var(--c,#fff)}
+.eras button:not(.on):hover{color:var(--ink)}
+.hint{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;font-size:13px;font-weight:600;color:var(--muted);background:rgba(10,14,20,.6);border:1px solid var(--line);padding:9px 16px;border-radius:999px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap;transition:opacity .4s;pointer-events:none}
+.count{position:fixed;right:24px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:4;font-size:12px;font-weight:600;color:var(--muted);text-align:right;line-height:1.4;pointer-events:none}
+.count b{display:block;font-size:22px;font-weight:900;color:var(--ink)}
+#mk{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.m{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:var(--ink);will-change:transform;transition:opacity .3s}
+.m .dot{position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 0 14px var(--c)}
+.m .dot::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--c);animation:ping 2.4s ease-out infinite;opacity:0}
+@keyframes ping{0%{transform:scale(.5);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+.m .pic{position:absolute;left:-23px;top:-23px;width:46px;height:46px;border-radius:50%;border:2.5px solid var(--c);background:#0d141c center/cover;box-shadow:0 6px 18px rgba(0,0,0,.55);opacity:0;transform:scale(.4);transition:opacity .3s,transform .3s}
+.m .lb{position:absolute;left:0;top:26px;font-size:11px!important;transform:translateX(-50%);white-space:nowrap;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(8,11,16,.78);opacity:0;transition:opacity .3s}
+.near .m .pic{opacity:1;transform:none}.near .m .lb{opacity:1}.near .m .dot{opacity:0}
+.m:hover .pic,.m.sel .pic{transform:scale(1.15)}
+.m.hide{opacity:0;pointer-events:none}
+.card{position:fixed;z-index:10;right:20px;top:50%;width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;transform:translate(120%,-50%);transition:transform .45s cubic-bezier(.2,.8,.2,1);background:rgba(12,16,22,.92);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.card.open{transform:translate(0,-50%)}
+.card .ph{position:relative;aspect-ratio:16/10;background:radial-gradient(ellipse 90% 60% at 50% 40%,#1E2C36 0%,#0A1016 70%);overflow:hidden;border-radius:22px 22px 0 0}
+.card .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:10px}
+.card .x{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer;z-index:2}
+.card .bd{padding:18px 20px 22px}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:var(--c);color:#0b0d10}
+.card h2{font-size:30px;font-weight:900;letter-spacing:-.03em;margin-top:10px;line-height:1}
+.card .lat{font-style:italic;color:var(--muted);font-size:14px;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.chips span{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.where{margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05);font-size:14px;line-height:1.45}
+.where b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.fact{margin-top:12px;font-size:15px;line-height:1.5}
+.also{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.45}
+.cred{display:block;margin-top:14px;font-size:11px;color:var(--muted)}
+.cred a{color:inherit}
+.load{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);transition:opacity .6s;font-weight:700;color:var(--muted)}
+.load.done{opacity:0;pointer-events:none}
+.foot{position:fixed;left:24px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:4;font-size:12px;color:var(--muted)}
+.foot a{color:var(--ink);font-weight:700;text-decoration:none}
+@media (max-width:700px){
+ header{padding-left:16px;padding-right:16px}h1{margin-top:40px}.brand{left:16px}
+ .eras button{padding:8px 11px;font-size:13px}
+ .card{left:0;right:0;top:auto;bottom:0;width:100%;max-height:72dvh;border-radius:22px 22px 0 0;transform:translateY(105%)}
+ .card.open{transform:none}
+ .card .ph{aspect-ratio:16/8}
+ .count{right:16px;bottom:calc(64px + env(safe-area-inset-bottom))}.foot{left:16px;bottom:calc(70px + env(safe-area-inset-bottom))}
+ .hint{font-size:12px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=114392018', 'ym');
+
+    ym(114392018, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/114392018" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+</head><body>
+<canvas id="gl" aria-label="Глобус с местами находок динозавров"></canvas>
+<div id="mk"></div>
+<header>
+ <a class="brand" href="./">Динопедия<i>.</i></a>
+ <h1>Планета динозавров</h1>
+ <p class="sub">Крути Землю, приближай и нажимай на динозавров там, где их нашли</p>
+ <nav class="eras" id="eras" aria-label="Период"></nav>
+</header>
+<div class="count" id="count"></div>
+<div class="foot"><a href="./">← Вся Динопедия</a></div>
+<div class="hint" id="hint">Приблизь Землю, чтобы увидеть динозавров</div>
+<aside class="card" id="card" aria-live="polite"></aside>
+<div class="load" id="load">Собираю планету…</div>
+<script>
+const RAW=[
+["tyrannosaurus","Тираннозавр","Tyrannosaurus rex","K",68,66,12.3,"≈ 8 т","хищник","theropod",[],"Монтана, США",1902,"«Царь ящеров-тиранов»","Один из самых сильных укусов в истории суши: больше 35 000 ньютонов.",["«Парк юрского периода»","«История игрушек»"]],
+["velociraptor","Велоцираптор","Velociraptor mongoliensis","K",75,71,1.8,"15–20 кг","хищник","small",[],"Пустыня Гоби, Монголия",1923,"«Быстрый похититель»","Был размером с индюка и весь в перьях. В кино его сделали вдвое больше.",["«Парк юрского периода»","«Мир Юрского периода»"]],
+["spinosaurus","Спинозавр","Spinosaurus aegyptiacus","K",99,93,14,"≈ 7 т","хищник","theropod",["sail"],"Египет",1912,"«Шипастый ящер»","Ловил рыбу в реках, а хвостом грёб, как веслом. Первый скелет сгорел в 1944 году.",["«Парк юрского периода III»"]],
+["allosaurus","Аллозавр","Allosaurus fragilis","J",155,145,8.5,"≈ 2 т","хищник","theropod",[],"Колорадо, США",1877,"«Иной ящер»","Охотился на стегозавров: на его костях находят раны от их шипов.",["«Прогулки с динозаврами»"]],
+["dilophosaurus","Дилофозавр","Dilophosaurus wetherilli","J",193,190,7,"≈ 400 кг","хищник","theropod",["dilo"],"Аризона, США",1942,"«Ящер с двумя гребнями»","Воротник и ядовитый плевок придумали для кино. На самом деле он был 7 метров.",["«Парк юрского периода»"]],
+["coelophysis","Целофизис","Coelophysis bauri","T",216,201,3,"≈ 20 кг","хищник","small",[],"Нью-Мексико, США",1947,"«Полая форма»","Его череп летал в космос на шаттле «Индевор» в 1998 году.",[]],
+["eoraptor","Эораптор","Eoraptor lunensis","T",231,228,1,"≈ 10 кг","всеядный","small",[],"«Долина Луны», Аргентина",1991,"«Рассветный похититель»","Один из самых первых динозавров на Земле.",[]],
+["plateosaurus","Платеозавр","Plateosaurus engelhardti","T",214,204,8,"до 4 т","травоядный","ornitho",[],"Бавария, Германия",1834,"«Плоский ящер»","Предок гигантов, но сам ходил на двух ногах.",[]],
+["brachiosaurus","Брахиозавр","Brachiosaurus altithorax","J",154,150,22,"≈ 40 т","травоядный","brachio",[],"Колорадо, США",1900,"«Плечевой ящер»","Поднимал голову на 12 метров: это четвёртый этаж.",["«Парк юрского периода»"]],
+["diplodocus","Диплодок","Diplodocus carnegii","J",154,152,26,"≈ 15 т","травоядный","sauropod",[],"Вайоминг, США",1899,"«Двойная балка»","Копия его скелета с 1910 года стоит в музее Санкт-Петербурга.",["«Прогулки с динозаврами»"]],
+["apatosaurus","Апатозавр","Apatosaurus ajax","J",152,151,22,"≈ 23 т","травоядный","sauropod",[],"Колорадо, США",1877,"«Обманчивый ящер»","Он же бронтозавр: имя отменили в 1903 году и вернули в 2015-м.",["«Земля до начала времён»"]],
+["stegosaurus","Стегозавр","Stegosaurus stenops","J",155,145,9,"≈ 5 т","травоядный","stego",[],"Колорадо, США",1877,"«Кровельный ящер»","Тело с автобус, а мозг размером с грецкий орех.",["«Фантазия»"]],
+["ankylosaurus","Анкилозавр","Ankylosaurus magniventris","K",68,66,7,"≈ 6 т","травоядный","ankylo",["club"],"Монтана, США",1906,"«Сросшийся ящер»","Хвостовой булавой мог сломать ногу тираннозавру.",["«Динозавр» (Disney)"]],
+["triceratops","Трицератопс","Triceratops horridus","K",68,66,9,"≈ 8 т","травоядный","ceratops",["horn"],"Колорадо, США",1887,"«Трёхрогая морда»","Голова с воротником — до 2,5 метра. Сначала рога приняли за бизоньи.",["«Земля до начала времён»"]],
+["protoceratops","Протоцератопс","Protoceratops andrewsi","K",75,71,1.8,"≈ 80 кг","травоядный","ceratops",[],"Пустыня Гоби, Монголия",1922,"«Первая рогатая морда»","Найден в смертельной схватке с велоцираптором: обоих засыпало песком.",[]],
+["pachycephalosaurus","Пахицефалозавр","Pachycephalosaurus wyomingensis","K",68,66,4.5,"≈ 400 кг","травоядный","pachy",[],"Вайоминг, США",1940,"«Толстоголовый ящер»","Купол черепа толщиной до 25 см. Скорее всего, бились головами.",[]],
+["iguanodon","Игуанодон","Iguanodon bernissartensis","K",126,122,10,"≈ 3,5 т","травоядный","ornitho",[],"Англия и Бельгия",1822,"«Зуб игуаны»","Шип с большого пальца сначала ставили ему на нос, как рог.",["«Динозавр» (Disney)"]],
+["parasaurolophus","Паразауролоф","Parasaurolophus walkeri","K",76,73,9.5,"≈ 2,5 т","травоядный","ornitho",["crest"],"Альберта, Канада",1920,"«Почти завролоф»","Гребень-труба гудел: учёные сделали модель и услышали звук.",["«Парк юрского периода»"]],
+["maiasaura","Майазавра","Maiasaura peeblesorum","K",77,75,9,"≈ 3 т","травоядный","ornitho",[],"Монтана, США",1978,"«Ящер — хорошая мать»","Первое доказательство, что динозавры заботились о детях. Её кость летала в космос.",[]],
+["aralosaurus","Аралозавр","Aralosaurus tuberiferus","K",90,85,7,"≈ 3 т","травоядный","ornitho",["hump"],"Шах-Шах, Казахстан",1957,"«Аральский ящер с бугром»","Самый известный динозавр Казахстана.",[],"Казахстан"],
+["archaeopteryx","Археоптерикс","Archaeopteryx lithographica","J",151,149,0.5,"≈ 1 кг","хищник","bird",[],"Бавария, Германия",1861,"«Древнее крыло»","Птица с зубами и когтями на крыльях — главный мост между динозаврами и птицами.",[]],
+["microraptor","Микрораптор","Microraptor gui","K",125,120,0.8,"≈ 1 кг","хищник","small",[],"Ляонин, Китай",2000,"«Маленький похититель»","Четыре крыла: перья росли и на руках, и на ногах. Умел планировать.",[]],
+["sinosauropteryx","Синозавроптерикс","Sinosauropteryx prima","K",125,122,1,"≈ 0,5 кг","хищник","small",[],"Ляонин, Китай",1996,"«Китайский ящер-крыло»","Первый найденный динозавр с перьями. Хвост был рыже-белым в полоску.",[]],
+["cryolophosaurus","Криолофозавр","Cryolophosaurus ellioti","J",190,183,7,"≈ 450 кг","хищник","theropod",["cryo"],"Антарктида",1991,"«Холодный ящер с гребнем»","Из-за гребня его прозвали «элвизавром», в честь причёски Элвиса.",[]],
+["psittacosaurus","Пситтакозавр","Psittacosaurus sibiricus","K",125,100,1.5,"≈ 20 кг","травоядный","ornitho",[],"Кемеровская обл., Россия",1953,"«Ящер-попугай»","На хвосте росли щетинки, как у дикобраза.",[],"Россия"],
+["olorotitan","Олоротитан","Olorotitan arharensis","K",67,66,8,"≈ 3 т","травоядный","ornitho",["olor"],"Амурская обл., Россия",1999,"«Гигантский лебедь»","Один из последних динозавров на Земле.",[],"Россия"],
+["oviraptor","Овираптор","Oviraptor philoceratops","K",75,71,1.8,"≈ 35 кг","всеядный","small",[],"Пустыня Гоби, Монголия",1923,"«Похититель яиц»","70 лет его считали вором яиц, а он высиживал своих.",[]],
+["saltasaurus","Сальтазавр","Saltasaurus loricatus","K",70,66,12,"≈ 7 т","травоядный","sauropod",[],"Аргентина",1980,"«Ящер из Сальты в панцире»","Первый длинношеий гигант, у которого нашли броню.",[]],
+["hypsilophodon","Гипсилофодон","Hypsilophodon foxii","K",130,125,1.8,"≈ 20 кг","травоядный","ornitho",[],"Остров Уайт, Англия",1868,"«Зуб с высоким гребнем»","Сто лет его рисовали на деревьях, а он был быстрым бегуном.",[]],
+["tenontosaurus","Тенонтозавр","Tenontosaurus tilletti","K",115,108,7,"≈ 1 т","травоядный","ornitho",[],"Монтана, США",1970,"«Сухожильный ящер»","Больше половины его длины — хвост.",[]],
+["euoplocephalus","Эуоплоцефал","Euoplocephalus tutus","K",76,75,5.5,"≈ 2,5 т","травоядный","ankylo",["club"],"Альберта, Канада",1897,"«Хорошо вооружённая голова»","Броня была даже на веках.",[]],
+["scelidosaurus","Сцелидозавр","Scelidosaurus harrisonii","J",196,190,4,"≈ 300 кг","травоядный","ankylo",[],"Дорсет, Англия",1858,"«Ящер с задней ногой»","Первый почти полный скелет динозавра в мире.",[]]];
+const DCRED={"tyrannosaurus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3ATyrannosaurus_TD.png"},"velociraptor":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AVelociraptor_TD.png"},"spinosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ASpinosaurus_TD.png"},"allosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AAllosaurus_TD.png"},"dilophosaurus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3ADilophosaurus_TD.png"},"coelophysis":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3ACoelophysis_TD.png"},"eoraptor":{"au":"Conty","lic":"CC BY 3.0","url":"https://commons.wikimedia.org/wiki/File%3AEoraptor_resto._01.png","lt":1},"plateosaurus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3APlateosaurus_TD.png"},"brachiosaurus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3ABrachiosaurus_TD.png"},"diplodocus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3ADiplodocus_TD.png"},"apatosaurus":{"au":"TotalDino","lic":"CC0","url":"https://commons.wikimedia.org/wiki/File%3AApatosaurus_TD.png"},"stegosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AStegosaurus_TD.png"},"ankylosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AAnkylosaurus_TD.png"},"triceratops":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ATriceratops_TD.png"},"protoceratops":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3AProtoceratops_TD.png"},"pachycephalosaurus":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3APachycephalosaurus_TD.png"},"iguanodon":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3AIguanodon_TD.png"},"parasaurolophus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AParasaurolophus_TD.png"},"maiasaura":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AMaiasaura_TD.png"},"aralosaurus":{"au":"Levi Martinez-Reza","lic":"CC BY-SA 3.0","url":"https://commons.wikimedia.org/wiki/File%3AAralosaurus_LM.png","lt":1},"archaeopteryx":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3AArchaeopteryx_TD.png"},"microraptor":{"au":"Entelognathus","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3AMicroraptor_recon.png"},"sinosauropteryx":{"au":"Ddinodan","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ASinosauropteryx_lingyuanensis.png"},"cryolophosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ACryolophosaurus_TD.png"},"psittacosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3APsittacosaurus_TD.png"},"olorotitan":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AOlorotitan_TD.png"},"oviraptor":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AOviraptor_TD.png"},"saltasaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ASaltasaurus_TD.png"},"hypsilophodon":{"au":"TotalDino","lic":"CC BY-SA 4.0","url":"https://commons.wikimedia.org/wiki/File%3AHypsilophodon_TD.png"},"tenontosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3ATenontosaurus_TD.png"},"euoplocephalus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AEuoplocephalus_TD.png"},"scelidosaurus":{"au":"TotalDino","lic":"CC BY 4.0","url":"https://commons.wikimedia.org/wiki/File%3AScelidosaurus_TD.png"}};
+const FINDS=[{"id": "tyrannosaurus", "name": "Тираннозавр", "latin": "Tyrannosaurus rex", "period": "Мел", "ma": "68–66", "country": "США", "place": "Монтана, округ Гарфилд", "formation": "Хелл-Крик", "lat": 47.6, "lon": -106.9, "found": 1902, "also": "Южная и Северная Дакота (скелет «Сью»), Вайоминг; Саскачеван, Канада"}, {"id": "velociraptor", "name": "Велоцираптор", "latin": "Velociraptor mongoliensis", "period": "Мел", "ma": "75–71", "country": "Монголия", "place": "Пустыня Гоби, Пылающие скалы (Баянзаг)", "formation": "Джадохта", "lat": 44.14, "lon": 103.73, "found": 1923, "also": "Тугрикийн-Ширэ, Монголия; Внутренняя Монголия, Китай"}, {"id": "spinosaurus", "name": "Спинозавр", "latin": "Spinosaurus aegyptiacus", "period": "Мел", "ma": "99–93", "country": "Египет", "place": "Оазис Бахария", "formation": "Бахария", "lat": 28.35, "lon": 28.86, "found": 1912, "also": "Кем-Кем, Марокко (самые полные кости последних лет)"}, {"id": "allosaurus", "name": "Аллозавр", "latin": "Allosaurus fragilis", "period": "Юра", "ma": "155–145", "country": "США", "place": "Колорадо, Гарден-Парк у Каньон-Сити", "formation": "Моррисон", "lat": 38.5, "lon": -105.2, "found": 1877, "also": "Карьер Кливленд-Ллойд, Юта (больше 40 особей); Португалия"}, {"id": "dilophosaurus", "name": "Дилофозавр", "latin": "Dilophosaurus wetherilli", "period": "Юра", "ma": "193–190", "country": "США", "place": "Аризона, земли навахо", "formation": "Каента", "lat": 36.0, "lon": -111.3, "found": 1942, "also": ""}, {"id": "coelophysis", "name": "Целофизис", "latin": "Coelophysis bauri", "period": "Триас", "ma": "216–201", "country": "США", "place": "Нью-Мексико, ранчо Гост-Ранч", "formation": "Чинле", "lat": 36.33, "lon": -106.47, "found": 1947, "also": "на Гост-Ранч найдены сотни скелетов в одном месте"}, {"id": "eoraptor", "name": "Эораптор", "latin": "Eoraptor lunensis", "period": "Триас", "ma": "231–228", "country": "Аргентина", "place": "Провинция Сан-Хуан, «Долина Луны» (Исчигуаласто)", "formation": "Исчигуаласто", "lat": -30.0, "lon": -67.9, "found": 1991, "also": ""}, {"id": "plateosaurus", "name": "Платеозавр", "latin": "Plateosaurus engelhardti", "period": "Триас", "ma": "214–204", "country": "Германия", "place": "Бавария, окрестности Нюрнберга", "formation": "Кёйпер (верхний триас)", "lat": 49.5, "lon": 11.1, "found": 1834, "also": "Тросинген, Баден-Вюртемберг; Фрик, Швейцария; Гренландия"}, {"id": "brachiosaurus", "name": "Брахиозавр", "latin": "Brachiosaurus altithorax", "period": "Юра", "ma": "154–150", "country": "США", "place": "Колорадо, Гранд-Джанкшен", "formation": "Моррисон", "lat": 39.04, "lon": -108.63, "found": 1900, "also": ""}, {"id": "diplodocus", "name": "Диплодок", "latin": "Diplodocus carnegii", "period": "Юра", "ma": "154–152", "country": "США", "place": "Вайоминг, Шип-Крик", "formation": "Моррисон", "lat": 41.6, "lon": -106.0, "found": 1899, "also": "Национальный памятник «Динозавр», Юта; Колорадо"}, {"id": "apatosaurus", "name": "Апатозавр", "latin": "Apatosaurus ajax", "period": "Юра", "ma": "152–151", "country": "США", "place": "Колорадо, городок Моррисон", "formation": "Моррисон", "lat": 39.65, "lon": -105.19, "found": 1877, "also": "Комо-Блафф, Вайоминг"}, {"id": "stegosaurus", "name": "Стегозавр", "latin": "Stegosaurus stenops", "period": "Юра", "ma": "155–145", "country": "США", "place": "Колорадо, городок Моррисон", "formation": "Моррисон", "lat": 39.65, "lon": -105.19, "found": 1877, "also": "Гарден-Парк, Колорадо; Вайоминг; Юта; Португалия"}, {"id": "ankylosaurus", "name": "Анкилозавр", "latin": "Ankylosaurus magniventris", "period": "Мел", "ma": "68–66", "country": "США", "place": "Монтана, долина ручья Гилберт", "formation": "Хелл-Крик", "lat": 47.5, "lon": -106.9, "found": 1906, "also": "Вайоминг; Альберта, Канада"}, {"id": "triceratops", "name": "Трицератопс", "latin": "Triceratops horridus", "period": "Мел", "ma": "68–66", "country": "США", "place": "Колорадо, окрестности Денвера", "formation": "Денвер", "lat": 39.74, "lon": -104.99, "found": 1887, "also": "больше всего скелетов из Вайоминга (формация Ланс) и Монтаны"}, {"id": "protoceratops", "name": "Протоцератопс", "latin": "Protoceratops andrewsi", "period": "Мел", "ma": "75–71", "country": "Монголия", "place": "Пустыня Гоби, Баянзаг", "formation": "Джадохта", "lat": 44.14, "lon": 103.73, "found": 1922, "also": "Тугрикийн-Ширэ, знаменитые «дерущиеся динозавры» с велоцираптором"}, {"id": "pachycephalosaurus", "name": "Пахицефалозавр", "latin": "Pachycephalosaurus wyomingensis", "period": "Мел", "ma": "68–66", "country": "США", "place": "Вайоминг, округ Ниобрара", "formation": "Ланс", "lat": 43.0, "lon": -104.4, "found": 1940, "also": "Монтана и Южная Дакота (формация Хелл-Крик)"}, {"id": "iguanodon", "name": "Игуанодон", "latin": "Iguanodon bernissartensis", "period": "Мел", "ma": "126–122", "country": "Великобритания", "place": "Англия, Сассекс, лес Тилгейт", "formation": "Уилд", "lat": 51.07, "lon": -0.17, "found": 1822, "also": "Берниссар, Бельгия: в угольной шахте найдено около 38 скелетов (1878)"}, {"id": "parasaurolophus", "name": "Паразауролоф", "latin": "Parasaurolophus walkeri", "period": "Мел", "ma": "76–73", "country": "Канада", "place": "Альберта, долина реки Ред-Дир", "formation": "Дайносор-Парк", "lat": 50.75, "lon": -111.5, "found": 1920, "also": "Нью-Мексико и Юта, США"}, {"id": "maiasaura", "name": "Майазавра", "latin": "Maiasaura peeblesorum", "period": "Мел", "ma": "77–75", "country": "США", "place": "Монтана, «Яичная гора» у Шото", "formation": "Ту-Медисин", "lat": 47.83, "lon": -112.38, "found": 1978, "also": "целые гнездовья с яйцами и детёнышами"}, {"id": "aralosaurus", "name": "Аралозавр", "latin": "Aralosaurus tuberiferus", "period": "Мел", "ma": "90–85", "country": "Казахстан", "place": "Кызылординская обл., урочище Шах-Шах у Аральского моря", "formation": "Бостобе", "lat": 46.6, "lon": 63.0, "found": 1957, "also": "первый динозавр, описанный по находке из Казахстана"}, {"id": "archaeopteryx", "name": "Археоптерикс", "latin": "Archaeopteryx lithographica", "period": "Юра", "ma": "151–149", "country": "Германия", "place": "Бавария, Зольнхофен и Эйхштетт", "formation": "Зольнхофенский известняк", "lat": 48.89, "lon": 11.0, "found": 1861, "also": "известно около 12 отпечатков, все из этого района"}, {"id": "microraptor", "name": "Микрораптор", "latin": "Microraptor gui", "period": "Мел", "ma": "125–120", "country": "Китай", "place": "Ляонин, район Чаоян", "formation": "Цзюфотан", "lat": 41.57, "lon": 120.45, "found": 2000, "also": ""}, {"id": "sinosauropteryx", "name": "Синозавроптерикс", "latin": "Sinosauropteryx prima", "period": "Мел", "ma": "125–122", "country": "Китай", "place": "Ляонин, деревня Сыхэтунь у Бэйпяо", "formation": "Исянь", "lat": 41.6, "lon": 120.8, "found": 1996, "also": "первый динозавр, у которого нашли перья"}, {"id": "cryolophosaurus", "name": "Криолофозавр", "latin": "Cryolophosaurus ellioti", "period": "Юра", "ma": "190–183", "country": "Антарктида", "place": "Гора Киркпатрик, Трансантарктические горы", "formation": "Хансон", "lat": -84.33, "lon": 166.4, "found": 1991, "also": "найден на высоте около 4000 м"}, {"id": "psittacosaurus", "name": "Пситтакозавр", "latin": "Psittacosaurus sibiricus", "period": "Мел", "ma": "125–100", "country": "Россия", "place": "Кемеровская обл., Шестаково", "formation": "Илек", "lat": 55.9, "lon": 87.95, "found": 1953, "also": "главные находки из Монголии и Китая; описан по черепу из Монголии"}, {"id": "olorotitan", "name": "Олоротитан", "latin": "Olorotitan arharensis", "period": "Мел", "ma": "67–66", "country": "Россия", "place": "Амурская обл., Кундур", "formation": "Удурчукан", "lat": 49.08, "lon": 130.85, "found": 1999, "also": ""}, {"id": "oviraptor", "name": "Овираптор", "latin": "Oviraptor philoceratops", "period": "Мел", "ma": "75–71", "country": "Монголия", "place": "Пустыня Гоби, Баянзаг", "formation": "Джадохта", "lat": 44.14, "lon": 103.73, "found": 1923, "also": ""}, {"id": "saltasaurus", "name": "Сальтазавр", "latin": "Saltasaurus loricatus", "period": "Мел", "ma": "70–66", "country": "Аргентина", "place": "Провинция Сальта, Эль-Брете", "formation": "Лечо", "lat": -25.7, "lon": -64.9, "found": 1980, "also": ""}, {"id": "hypsilophodon", "name": "Гипсилофодон", "latin": "Hypsilophodon foxii", "period": "Мел", "ma": "130–125", "country": "Великобритания", "place": "Англия, остров Уайт", "formation": "Уэссекс", "lat": 50.62, "lon": -1.36, "found": 1868, "also": ""}, {"id": "tenontosaurus", "name": "Тенонтозавр", "latin": "Tenontosaurus tilletti", "period": "Мел", "ma": "115–108", "country": "США", "place": "Монтана, округ Биг-Хорн", "formation": "Кловерли", "lat": 45.2, "lon": -108.0, "found": 1970, "also": "Оклахома, Техас, Юта"}, {"id": "euoplocephalus", "name": "Эуоплоцефал", "latin": "Euoplocephalus tutus", "period": "Мел", "ma": "76–75", "country": "Канада", "place": "Альберта, долина реки Ред-Дир", "formation": "Дайносор-Парк", "lat": 50.76, "lon": -111.49, "found": 1897, "also": ""}, {"id": "scelidosaurus", "name": "Сцелидозавр", "latin": "Scelidosaurus harrisonii", "period": "Юра", "ma": "196–190", "country": "Великобритания", "place": "Англия, Дорсет, Чармут", "formation": "Чармутские аргиллиты", "lat": 50.74, "lon": -2.9, "found": 1858, "also": "«Юрское побережье», объект ЮНЕСКО"}];
+const PJ={"t":[0,10,20,30,40,45,50,55,66,80,100,115,130,150,170,185,200,225,250,275,300,325,350,375,400,420,435,450,475,500,520,539],"q":[[[0.0,0.0,0.0,1.0],[0.02025,0.0054,0.03677,0.9991],[0.04126,0.01037,0.07298,0.99643],[0.06299,0.01486,0.10856,0.99198],[0.08534,0.01881,0.14345,0.98579],[0.09673,0.02056,0.16062,0.98205],[0.10825,0.02216,0.1776,0.97788],[0.11989,0.02361,0.19437,0.97329],[0.14586,0.02618,0.23054,0.96171],[0.16806,0.03682,0.25635,0.95115],[0.2012,0.05056,0.29114,0.93392],[0.22697,0.05966,0.31551,0.91945],[0.25341,0.06762,0.33845,0.90369],[0.28954,0.07633,0.36683,0.88078],[0.32989,0.08406,0.39998,0.85095],[0.36064,0.08811,0.42262,0.82678],[0.36871,0.10398,0.4097,0.82788],[0.38044,0.1222,0.39095,0.82915],[0.39173,0.14026,0.37184,0.82982],[0.41933,0.1645,0.33358,0.82815],[0.44498,0.18785,0.29419,0.82472],[0.3572,0.35199,0.16696,0.84891],[0.25106,0.49802,0.03114,0.82944],[0.31535,0.45662,-0.07451,0.82855],[0.37271,0.40908,-0.18062,0.81309],[0.41115,0.39374,-0.27755,0.77388],[0.44028,0.37935,-0.34584,0.73664],[0.46939,0.36206,-0.40955,0.69343],[0.46551,0.4268,-0.39609,0.66653],[0.4551,0.49003,-0.38209,0.63778],[0.46661,0.49671,-0.38901,0.61987],[0.47747,0.50294,-0.39493,0.60258]],[[0.0,0.0,0.0,1.0],[0.02489,-0.00396,0.02282,0.99942],[0.0502,-0.00829,0.04497,0.99769],[0.07587,-0.01301,0.06644,0.99482],[0.10183,-0.01815,0.08719,0.99081],[0.11491,-0.02088,0.0973,0.98838],[0.12803,-0.02373,0.10722,0.98567],[0.1412,-0.0267,0.11696,0.98269],[0.17028,-0.03364,0.13772,0.97515],[0.21019,-0.04195,0.16815,0.96218],[0.2676,-0.05551,0.20805,0.93916],[0.30112,-0.06025,0.22581,0.9245],[0.33458,-0.06604,0.24186,0.90841],[0.3403,-0.04574,0.22465,0.91194],[0.34434,-0.02222,0.20779,0.91529],[0.34712,-0.00464,0.19494,0.91732],[0.34969,0.01288,0.18195,0.91894],[0.35437,0.03374,0.16286,0.9202],[0.35865,0.05446,0.1436,0.92075],[0.37453,0.08591,0.10405,0.91734],[0.38863,0.11647,0.06402,0.91176],[0.39811,0.13616,0.04391,0.90611],[0.40688,0.15552,0.02349,0.89984],[0.42766,0.16032,-0.0171,0.88944],[0.44691,0.16413,-0.05731,0.87752],[0.46803,0.17066,-0.08098,0.86329],[0.48308,0.17517,-0.09915,0.85212],[0.49745,0.17934,-0.11765,0.84056],[0.52068,0.16172,-0.10686,0.83146],[0.54383,0.146,-0.09463,0.82097],[0.56992,0.12448,-0.07626,0.80863],[0.59436,0.10642,-0.05712,0.79507]],[[0.0,0.0,0.0,1.0],[0.01866,0.00579,-0.01846,0.99964],[0.03742,0.01333,-0.03737,0.99851],[0.0561,0.02264,-0.05666,0.99656],[0.07387,0.0344,-0.08724,0.99285],[0.0825,0.04109,-0.10258,0.99045],[0.09092,0.04829,-0.11793,0.98767],[0.0991,0.05602,-0.13328,0.98452],[0.12305,0.06668,-0.0954,0.98555],[0.14076,0.08381,-0.06757,0.98417],[0.16789,0.10739,-0.02909,0.97951],[0.18949,0.12425,-0.00137,0.97399],[0.21212,0.14027,0.02541,0.96679],[0.24373,0.16015,0.05962,0.95467],[0.27972,0.18046,0.10057,0.93759],[0.30775,0.19422,0.12975,0.92235],[0.31016,0.21194,0.11726,0.91931],[0.31524,0.23313,0.09921,0.91457],[0.31995,0.25402,0.08102,0.90914],[0.33802,0.28622,0.04546,0.89541],[0.35454,0.31695,0.0094,0.87963],[0.21744,0.44444,-0.11718,0.86108],[0.06916,0.54908,-0.23774,0.79826],[0.14301,0.53166,-0.33792,0.76335],[0.21242,0.50624,-0.43379,0.71444],[0.25367,0.50513,-0.51295,0.64605],[-0.33642,0.70262,-0.52666,0.34024],[-0.79358,0.55862,-0.22913,-0.07534],[-0.76904,0.60426,-0.20238,-0.04988],[-0.75118,0.63822,-0.16604,-0.02889],[-0.76581,0.63261,-0.1139,-0.01941],[-0.78836,0.6126,-0.05542,-0.01183]],[[0.0,0.0,0.0,1.0],[0.01866,0.00579,-0.01846,0.99964],[0.03742,0.01333,-0.03737,0.99851],[0.0561,0.02264,-0.05666,0.99656],[0.07387,0.0344,-0.08724,0.99285],[0.0825,0.04109,-0.10258,0.99045],[0.09092,0.04829,-0.11793,0.98767],[0.0991,0.05602,-0.13328,0.98452],[0.12305,0.06668,-0.0954,0.98555],[0.14076,0.08381,-0.06757,0.98417],[0.16789,0.10739,-0.02909,0.97951],[0.18949,0.12425,-0.00137,0.97399],[0.21212,0.14027,0.02541,0.96679],[0.24373,0.16015,0.05962,0.95467],[0.27972,0.18046,0.10057,0.93759],[0.30775,0.19422,0.12975,0.92235],[0.31016,0.21194,0.11726,0.91931],[0.31524,0.23313,0.09921,0.91457],[0.31995,0.25402,0.08102,0.90914],[0.33802,0.28622,0.04546,0.89541],[0.35454,0.31695,0.0094,0.87963],[0.19736,0.21243,-0.03919,0.95624],[0.03152,0.09859,-0.08607,0.9909],[0.00637,-0.08089,-0.10379,0.99128],[0.04865,-0.26215,-0.10005,0.95859],[0.16865,-0.49671,-0.23556,0.81814],[0.29153,-0.61361,-0.32499,0.65793],[0.42455,-0.66131,-0.4078,0.4649],[0.46068,-0.68334,-0.4926,0.27957],[0.48572,-0.67541,-0.54894,0.08099],[0.49099,-0.64719,-0.58181,0.03961],[0.49175,-0.61945,-0.61193,0.0]],[[0.0,0.0,0.0,1.0],[0.00232,0.01026,-0.00379,0.99994],[0.00468,0.02048,-0.00769,0.99975],[0.00707,0.03065,-0.0117,0.99944],[0.00949,0.04077,-0.01582,0.999],[0.01071,0.04581,-0.01791,0.99873],[0.01194,0.05084,-0.02003,0.99843],[0.01317,0.05585,-0.02218,0.99811],[0.01592,0.06683,-0.02698,0.99727],[0.01596,0.08505,-0.03296,0.9957],[0.01607,0.11091,-0.04181,0.99282],[0.01619,0.13016,-0.04866,0.99017],[0.01632,0.14928,-0.05567,0.98709],[0.01651,0.17456,-0.06523,0.98234],[0.01411,0.20198,-0.07382,0.9765],[0.01229,0.22237,-0.08033,0.97157],[0.01044,0.24261,-0.08688,0.96617],[0.0105,0.26816,-0.09735,0.95839],[0.01048,0.29337,-0.10784,0.94984],[0.02175,0.337,-0.1297,0.93227],[0.03245,0.37899,-0.15181,0.91229],[0.03927,0.40421,-0.16031,0.89965],[0.0458,0.42887,-0.16908,0.88622],[0.07261,0.4498,-0.19615,0.8683],[0.09877,0.46894,-0.22292,0.84891],[0.12334,0.48604,-0.23327,0.83315],[0.14144,0.49828,-0.24148,0.82061],[0.15922,0.51,-0.25006,0.80748],[0.18628,0.49774,-0.23832,0.81287],[0.21276,0.48648,-0.22433,0.81716],[0.24324,0.46905,-0.20543,0.82379],[0.27129,0.45367,-0.18474,0.82853]],[[0.0,0.0,0.0,1.0],[0.01866,0.00579,-0.01846,0.99964],[0.03742,0.01333,-0.03737,0.99851],[0.0561,0.02264,-0.05666,0.99656],[0.07387,0.0344,-0.08724,0.99285],[0.0825,0.04109,-0.10258,0.99045],[0.03257,0.04673,-0.08988,0.99432],[-0.07474,0.04505,-0.09027,0.99209],[-0.24061,0.03938,-0.14636,0.95872],[-0.27217,0.05491,-0.16012,0.94724],[-0.30607,0.07828,-0.17316,0.93285],[-0.32303,0.09673,-0.17865,0.92433],[-0.33519,0.11569,-0.18191,0.91715],[-0.33846,0.14248,-0.18171,0.91221],[-0.34411,0.17052,-0.1796,0.90568],[-0.34816,0.19144,-0.17804,0.90024],[-0.35207,0.21224,-0.17647,0.89435],[-0.35455,0.23969,-0.17647,0.8864],[-0.35681,0.26686,-0.17645,0.87769],[-0.34949,0.31723,-0.17987,0.86306],[-0.34163,0.36617,-0.18359,0.84587],[-0.33612,0.39411,-0.18129,0.83596],[-0.33054,0.4216,-0.17927,0.82514],[-0.30483,0.45543,-0.19553,0.81328],[-0.27891,0.48747,-0.21178,0.79983],[-0.25455,0.51182,-0.21407,0.7921],[-0.23627,0.52966,-0.21624,0.78542],[-0.218,0.54711,-0.21881,0.77799],[-0.19193,0.53657,-0.21408,0.79336],[-0.16612,0.52617,-0.20672,0.80797],[-0.13603,0.50907,-0.19741,0.82667],[-0.10787,0.49293,-0.18533,0.84323]],[[0.0,0.0,0.0,1.0],[0.03013,-0.00285,-0.01355,0.99945],[0.05995,-0.00594,-0.02782,0.9978],[0.08942,-0.00929,-0.04277,0.99503],[0.11847,-0.01291,-0.05837,0.99116],[0.13283,-0.01483,-0.0664,0.9888],[0.14707,-0.01683,-0.07457,0.98617],[0.16119,-0.01891,-0.08289,0.98325],[0.19177,-0.02377,-0.10167,0.97587],[0.22076,-0.0237,-0.12444,0.96707],[0.26026,-0.02491,-0.15862,0.95209],[0.2883,-0.0269,-0.18537,0.93904],[0.30411,-0.02295,-0.20736,0.92951],[0.31681,-0.01403,-0.23371,0.91914],[0.32572,-0.00374,-0.26,0.90901],[0.31874,0.0131,-0.27233,0.90778],[0.31158,0.02987,-0.28457,0.90611],[0.30402,0.05069,-0.30233,0.902],[0.29614,0.07132,-0.31987,0.89716],[0.29119,0.10752,-0.35515,0.88177],[0.28501,0.14247,-0.38969,0.86407],[0.28223,0.16533,-0.40607,0.8533],[0.27892,0.18768,-0.42235,0.84179],[0.28987,0.20328,-0.4568,0.81608],[0.29997,0.21753,-0.49005,0.78902],[0.31291,0.23499,-0.50779,0.76747],[0.32205,0.24748,-0.52116,0.75062],[0.33069,0.25943,-0.53455,0.73321],[0.36071,0.25484,-0.52464,0.72781],[0.39005,0.25208,-0.5128,0.72205],[0.42544,0.24556,-0.49524,0.71655],[0.458,0.24155,-0.47615,0.71076]],[[0.0,0.0,0.0,1.0],[-0.01928,-0.03437,-0.02386,0.99894],[-0.03971,-0.06679,-0.05046,0.9957],[-0.06138,-0.09694,-0.07952,0.99021],[-0.08433,-0.12453,-0.11072,0.98241],[-0.0963,-0.13729,-0.12703,0.97762],[-0.08309,-0.13647,-0.1373,0.97756],[-0.06996,-0.13566,-0.1477,0.97718],[-0.04138,-0.13394,-0.17098,0.97525],[-0.0148,-0.12645,-0.19675,0.97215],[0.02167,-0.11638,-0.23507,0.96474],[0.04777,-0.10944,-0.26481,0.95688],[0.06175,-0.09882,-0.28706,0.9508],[0.07208,-0.08245,-0.31193,0.94377],[0.07866,-0.06497,-0.33592,0.93635],[0.06973,-0.04615,-0.34308,0.93558],[0.06073,-0.02737,-0.35013,0.93433],[0.05091,-0.00314,-0.36145,0.93099],[0.04098,0.02095,-0.37254,0.92688],[0.03297,0.06557,-0.39733,0.91474],[0.02445,0.10911,-0.42141,0.89995],[0.0208,0.13616,-0.43137,0.8916],[0.01685,0.16278,-0.44126,0.88233],[0.02739,0.18949,-0.47161,0.86077],[0.03764,0.21481,-0.50092,0.83757],[0.05153,0.23916,-0.51521,0.8214],[0.06157,0.25693,-0.52601,0.8084],[0.07127,0.27424,-0.53685,0.79467],[0.10302,0.26966,-0.53241,0.79574],[0.1344,0.26646,-0.5256,0.79667],[0.17253,0.25859,-0.51497,0.79885],[0.20811,0.25274,-0.5019,0.80057]]],"c":[[51.95,-97.32,52.3],[-14.21,-60.41,46.9],[51.51,30.76,41.8],[46.07,102.54,72.7],[8.62,21.52,48.0],[24.03,78.23,23.8],[-85.13,81.36,34.6],[-23.95,136.54,40.1]]};
+function iceS(t){return t<34?20:(t>280&&t<340)?30:(t>440&&t<450)?28:0}
+function iceN(t){return t<2.6?22:0}
+function hash3(x,y,z){let h=(x*374761393+y*668265263+z*2147483647)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))>>>0)/4294967296}
+function vnoise(x,y,z){const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-xi,yf=y-yi,zf=z-zi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);
+ const L=(a,b,t)=>a+(b-a)*t;
+ return L(L(L(hash3(xi,yi,zi),hash3(xi+1,yi,zi),u),L(hash3(xi,yi+1,zi),hash3(xi+1,yi+1,zi),u),v),L(L(hash3(xi,yi,zi+1),hash3(xi+1,yi,zi+1),u),L(hash3(xi,yi+1,zi+1),hash3(xi+1,yi+1,zi+1),u),v),w)}
+function fbm(x,y,z,o){let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*vnoise(x*f,y*f,z*f);a*=.5;f*=2.03}return s}
+const TW=1024,TH=512;
+const PV=new Float32Array(TW*TH*3), DETAIL=new Float32Array(TW*TH), RIDGE=new Float32Array(TW*TH), CLOUD=new Float32Array(TW*TH);
+for(let y=0;y<TH;y++){const la=(.5-(y+.5)/TH)*Math.PI;for(let x=0;x<TW;x++){const lo=((x+.5)/TW-.5)*2*Math.PI,i=y*TW+x;
+ const px=Math.cos(la)*Math.cos(lo),py=Math.cos(la)*Math.sin(lo),pz=Math.sin(la);PV[i*3]=px;PV[i*3+1]=py;PV[i*3+2]=pz;
+ DETAIL[i]=fbm(px*14+11,py*14+3,pz*14+7,5);
+ let rg=0,ra=.6,rf=34;for(let o=0;o<3;o++){rg+=ra*(1-Math.abs(2*vnoise(px*rf+5,py*rf+9,pz*rf+1)-1));ra*=.5;rf*=2.1}RIDGE[i]=rg/1.05;
+ const band=Math.cos(la*3)*.15; CLOUD[i]=Math.max(0,Math.min(1,(fbm(px*3.2+50,py*3.2,pz*7+9,5)-.5+band)*3.2))}}
+const PW=2048,PH=1024;let PL=null,PG=null,PB=null;
+(function(){const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=PW;c.height=PH;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0);
+ const d=x.getImageData(0,0,PW,PH).data,n=PW*PH;PL=new Uint8Array(n);PG=new Uint8Array(n);PB=new Uint8Array(n);
+ for(let i=0;i<n;i++){PL[i]=d[i*4];PG[i]=d[i*4+1];PB[i]=d[i*4+2]}window.__platesReady=1;if(window.onPlates)onPlates()};im.src="plates.png"})();
+function qAt(k,t){const T=PJ.t;let i=0;while(i<T.length-2&&T[i+1]<t)i++;const f=Math.max(0,Math.min(1,(t-T[i])/(T[i+1]-T[i]))),a=PJ.q[k][i],b=PJ.q[k][i+1];
+ let d=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3],wa,wb;
+ if(d>.9995){wa=1-f;wb=f}else{const th=Math.acos(Math.min(1,d)),s=Math.sin(th);wa=Math.sin((1-f)*th)/s;wb=Math.sin(f*th)/s}
+ const q=[a[0]*wa+b[0]*wb,a[1]*wa+b[1]*wb,a[2]*wa+b[2]*wb,a[3]*wa+b[3]*wb],n=Math.hypot(...q);return q.map(v=>v/n)}
+function qMat(q){const[x,y,z,w]=q;return[1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w),2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w),2*(x*z-y*w),2*(y*z+x*w),1-2*(x*x+y*y)]}
+function mScale(id,t){switch(id){
+ case 1:return t<50?1-t/50:0; case 2:return t<100?Math.min(1,(100-t)/55):.15; case 3:return t<80?Math.min(1,(80-t)/40):.2;
+ case 4:return t<35?1-t/35:0; case 5:return t<200?.35:t<330?1:t<470?.5:0; case 6:return t<240?.45:t<320?1:0;
+ case 7:return t<30?1-t/40:0; case 8:return t<30?.8:0; case 9:return t<30?1-t/30:0; case 10:return t<60?1:.3;
+ case 11:return .5; case 12:return t<380?.35:t<430?1:0; case 13:return t<40?1:(t>230&&t<300)?.8:.3} return 0}
+const TEX=new Uint8ClampedArray(TW*TH*3), SPEC=new Uint8Array(TW*TH), EL=new Float32Array(TW*TH), LND=new Uint8Array(TW*TH);
+function lerpC(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+const C={deep:[6,24,52],ocean:[12,52,96],shallow:[38,128,150],shallowCold:[40,92,112],rain:[30,58,28],forest:[52,74,38],boreal:[40,56,36],savanna:[112,110,62],steppe:[146,136,92],desert:[214,184,134],dune:[196,150,102],rock:[118,106,94],tundra:[122,118,100],snow:[236,241,246],ice:[226,236,244],barren:[146,124,104],barren2:[104,90,80],moss:[86,100,64]};
+let texMa=-1;
+function buildTex(t){
+ const DEG=Math.PI/180,ms=[],cs=[],cr=[];
+ for(let k=0;k<8;k++){const M=qMat(qAt(k,t)),c=PJ.c[k],la=c[0]*DEG,lo=c[1]*DEG,v=[Math.cos(la)*Math.cos(lo),Math.cos(la)*Math.sin(lo),Math.sin(la)];
+  ms.push(M);cs.push([M[0]*v[0]+M[1]*v[1]+M[2]*v[2],M[3]*v[0]+M[4]*v[1]+M[5]*v[2],M[6]*v[0]+M[7]*v[1]+M[8]*v[2]]);cr.push(Math.cos((c[2]+3)*DEG))}
+ const veg=t<360?1:t<430?.35:0, arid=(t>200&&t<300)?.4:(t>440)?0:.12, is=iceS(t),inn=iceN(t),PX=PW/(2*Math.PI),PY=PH/Math.PI,ready=!!PL;
+ for(let y=0;y<TH;y++){const lat=90-(y+.5)/TH*180,alat=Math.abs(lat);
+  for(let x=0;x<TW;x++){const i=y*TW+x,px=PV[i*3],py=PV[i*3+1],pz=PV[i*3+2];
+   let land=0,inl=0,mt=0,rid=0,shelf=99,qla=0,qlo=0,det=DETAIL[i],rr=RIDGE[i];
+   if(ready)for(let k=0;k<8;k++){const c=cs[k];if(px*c[0]+py*c[1]+pz*c[2]<cr[k])continue;const M=ms[k];
+    const qx=M[0]*px+M[3]*py+M[6]*pz,qy=M[1]*px+M[4]*py+M[7]*pz,qz=M[2]*px+M[5]*py+M[8]*pz;
+    const jw=(DETAIL[i]-.5)*.03,jv=(RIDGE[i]-.5)*.03,la=Math.asin(qz>1?1:qz<-1?-1:qz)+jv,lo=Math.atan2(qy,qx)+jw/Math.max(.2,Math.cos(lat*DEG));let ix=((lo+Math.PI)*PX)|0,iy=((Math.PI/2-la)*PY)|0;if(ix>=PW)ix=PW-1;if(iy>=PH)iy=PH-1;
+    const j=iy*PW+ix,r=PL[j];
+    if((r&15)===k+1){land=k+1;rid=r>>4;inl=PG[j]/3*.176;mt=PB[j]/255;qla=la/DEG;qlo=lo/DEG;
+     const qi=Math.min(TH-1,((Math.PI/2-la)/Math.PI*TH)|0)*TW+(((lo+Math.PI)/(2*Math.PI)*TW)|0)%TW;det=DETAIL[qi];rr=RIDGE[qi];break}
+    if(r===0&&PB[j]===k+1){const s=PG[j]/3*.176;if(s<shelf)shelf=s}}
+   let col,spec=0,e=0;
+   if(!land){const sh=Math.max(0,1-shelf/1.7);col=lerpC(C.deep,C.ocean,Math.min(1,.35+det*.7));
+    col=lerpC(col,lerpC(C.shallow,C.shallowCold,Math.min(1,alat/60)),sh*sh*.9);spec=1}
+   else{
+    const m=mt*mScale(rid,t)*(.3+.95*rr),cont=Math.min(1,inl/9);
+    e=.12+.22*Math.min(1,inl/10)+(det-.5)*.35+(rr-.5)*.12+m*1.1;
+    let base;
+    if(veg){
+     const tropic=Math.max(0,1-alat/14),temper=Math.max(0,1-Math.abs(alat-48)/16),bore=Math.max(0,1-Math.abs(alat-60)/9);
+     base=lerpC(C.savanna,C.rain,Math.min(1,tropic*(1.3-cont*.6)));
+     base=lerpC(base,C.forest,Math.min(1,temper*(1.1-cont*.9)));
+     base=lerpC(base,C.steppe,Math.min(1,temper*cont*1.1));
+     base=lerpC(base,C.boreal,Math.min(1,bore*(1-cont*.4)));
+     const dry=Math.max(0,1-Math.abs(alat-24)/13)*(.3+cont*.85)+arid*cont*1.4+Math.max(0,1-Math.abs(alat-44)/9)*Math.max(0,cont-.65)*1.4;
+     base=lerpC(base,lerpC(C.desert,C.dune,det),Math.max(0,Math.min(1,(dry-.35)*1.6+(det-.5)*.6)));
+     if(alat>62) base=lerpC(base,C.tundra,Math.min(1,(alat-62)/10));
+     if(veg<1){const bar=lerpC(C.barren,C.barren2,det);base=lerpC(bar,lerpC(C.moss,base,.4),inl<1.2?.8:Math.max(0,.4-inl*.08))}
+    } else base=lerpC(C.barren,C.barren2,Math.min(1,det*1.2+cont*.2));
+    base=lerpC(base,C.rock,Math.min(.9,m*1.4));
+    const sn=m-(alat>28?.62:.82);if(sn>0) base=lerpC(base,C.snow,Math.min(.9,sn*4));
+    col=lerpC(base,[0,0,0],.16*(1-det)-.04);
+    if((land===7&&t<34)||(land===1&&t<3&&qla>59.5&&qlo>-74+(det-.5)*10&&qlo<-11)){col=lerpC(C.ice,[200,214,230],Math.max(0,(det-.4))*.6);e=.6+inl*.02}}
+   const seaIce=t<34&&!land&&(lat<-71+(det-.5)*6||(t<2.6&&lat>75+(det-.5)*6));
+   if(seaIce||(t>=34&&((is&&lat<-(90-is)+(det-.5)*10)||(inn&&lat>(90-inn)+(det-.5)*10)))){col=lerpC(col,C.snow,.9);spec=0}
+   TEX[i*3]=col[0];TEX[i*3+1]=col[1];TEX[i*3+2]=col[2];SPEC[i]=spec;EL[i]=e;LND[i]=land?1:0}}
+ for(let y=1;y<TH-1;y++)for(let x=0;x<TW;x++){const i=y*TW+x;if(!LND[i])continue;
+  const l=EL[y*TW+(x+TW-1)%TW],r=EL[y*TW+(x+1)%TW],u=EL[i-TW],d=EL[i+TW];
+  const s=Math.max(.55,Math.min(1.45,1+((r-l)+(d-u))*1.15));TEX[i*3]*=s;TEX[i*3+1]*=s;TEX[i*3+2]*=s}
+ texMa=t;
+}
+
+</script>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+const $=s=>document.querySelector(s);
+// ---- periods shown on the globe: continents are rebuilt for each moment
+const ERAS=[{k:"T",n:"Триас",t:215,c:"#A05DA5",note:"215 млн лет"},{k:"J",n:"Юра",t:160,c:"#34B2C9",note:"160 млн лет"},{k:"K",n:"Мел",t:85,c:"#7FC64E",note:"85 млн лет"},{k:"N",n:"Сегодня",t:0,c:"#F5A524",note:"наши дни"}];
+const PER={T:"Триас",J:"Юра",K:"Мел"},PC={T:"#A05DA5",J:"#34B2C9",K:"#7FC64E"};
+const DD={};RAW.forEach(r=>DD[r[0]]={id:r[0],ru:r[1],lat:r[2],era:r[3],ma:[r[4],r[5]],len:r[6],mass:r[7],diet:r[8],where:r[11],year:r[12],mean:r[13],fact:r[14]});
+// ---- textures for each period (procedural Earth from the plate model)
+const texs={},cloudTex=(()=>{const a=new Uint8Array(TW*TH*4);for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const i=y*TW+x,o=((TH-1-y)*TW+x)*4,c=CLOUD[i];a[o]=a[o+1]=a[o+2]=255;a[o+3]=Math.min(255,c*215)}const t=new THREE.DataTexture(a,TW,TH);t.needsUpdate=true;t.magFilter=t.minFilter=THREE.LinearFilter;return t})();
+function soften(){const B=new Uint8ClampedArray(TEX);for(let y=1;y<TH-1;y++)for(let x=0;x<TW;x++){const i=y*TW+x,l=y*TW+(x+TW-1)%TW,r=y*TW+(x+1)%TW,L=LND[i];
+ if(LND[l]===L&&LND[r]===L&&LND[i-TW]===L&&LND[i+TW]===L)continue;
+ for(let c=0;c<3;c++)TEX[i*3+c]=(B[i*3+c]*4+B[l*3+c]+B[r*3+c]+B[(i-TW)*3+c]+B[(i+TW)*3+c]+B[(l-TW)*3+c]*.5+B[(r-TW)*3+c]*.5+B[(l+TW)*3+c]*.5+B[(r+TW)*3+c]*.5)/10}}
+function texFor(t){if(texs[t])return texs[t];buildTex(t);soften();const a=new Uint8Array(TW*TH*4),s=new Uint8Array(TW*TH*4);
+ for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const i=y*TW+x,o=((TH-1-y)*TW+x)*4;a[o]=TEX[i*3];a[o+1]=TEX[i*3+1];a[o+2]=TEX[i*3+2];a[o+3]=255;const v=SPEC[i]?120:8;s[o]=s[o+1]=s[o+2]=v;s[o+3]=255}
+ const m=new THREE.DataTexture(a,TW,TH);m.colorSpace=THREE.SRGBColorSpace;m.needsUpdate=true;m.magFilter=THREE.LinearFilter;m.minFilter=THREE.LinearMipmapLinearFilter;m.generateMipmaps=true;m.anisotropy=4;
+ const sp=new THREE.DataTexture(s,TW,TH);sp.needsUpdate=true;sp.magFilter=THREE.LinearFilter;return texs[t]={map:m,spec:sp}}
+// ---- where a present-day find sits at time t: carry it with its tectonic plate
+const DEG=Math.PI/180;
+function plateAt(la,lo){const PX=PW/360,PY=PH/180;for(let r=0;r<14;r++)for(let a=0;a<(r?16:1);a++){const dla=la+r*.35*Math.sin(a/16*2*Math.PI),dlo=lo+r*.35*Math.cos(a/16*2*Math.PI);
+ let ix=Math.floor((dlo+180)*PX),iy=Math.floor((90-dla)*PY);ix=((ix%PW)+PW)%PW;iy=Math.max(0,Math.min(PH-1,iy));const v=PL[iy*PW+ix]&15;if(v)return v-1}return -1}
+function paleo(la,lo,k,t){if(k<0||!t)return[la,lo];const M=qMat(qAt(k,t)),q=[Math.cos(la*DEG)*Math.cos(lo*DEG),Math.cos(la*DEG)*Math.sin(lo*DEG),Math.sin(la*DEG)];
+ const p=[M[0]*q[0]+M[1]*q[1]+M[2]*q[2],M[3]*q[0]+M[4]*q[1]+M[5]*q[2],M[6]*q[0]+M[7]*q[1]+M[8]*q[2]];return[Math.asin(Math.max(-1,Math.min(1,p[2])))/DEG,Math.atan2(p[1],p[0])/DEG]}
+// lat/lon to a point on three's sphere (matches the texture layout)
+function v3(la,lo,r=1){const th=(90-la)*DEG,ph=(lo+180)*DEG;return new THREE.Vector3(-Math.cos(ph)*Math.sin(th)*r,Math.cos(th)*r,Math.sin(ph)*Math.sin(th)*r)}
+// ---- scene
+const cv=$("#gl"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false});R.setPixelRatio(Math.min(devicePixelRatio,2));R.outputColorSpace=THREE.SRGBColorSpace;
+const S=new THREE.Scene();S.background=new THREE.Color("#05080d");
+const cam=new THREE.PerspectiveCamera(36,1,.05,100);cam.position.set(0,.5,3.6);
+const ctl=new OrbitControls(cam,cv);ctl.enablePan=false;ctl.enableDamping=true;ctl.dampingFactor=.07;ctl.rotateSpeed=.5;ctl.zoomSpeed=.8;ctl.minDistance=1.9;ctl.maxDistance=5;ctl.autoRotate=true;ctl.autoRotateSpeed=.35;
+ctl.addEventListener("start",()=>{ctl.autoRotate=false});
+S.add(new THREE.AmbientLight(0xffffff,.32));const sun=new THREE.DirectionalLight(0xfff4e6,2.1);cam.add(sun);sun.position.set(-2.2,1.6,2.5);S.add(cam);
+const geo=new THREE.SphereGeometry(1,160,96);
+const mA=new THREE.MeshPhongMaterial({shininess:22,specular:new THREE.Color(.45,.5,.6)}),mB=mA.clone();mB.transparent=true;mB.opacity=0;mB.depthWrite=false;
+const earth=new THREE.Mesh(geo,mA),earthB=new THREE.Mesh(geo,mB);earthB.scale.setScalar(1.0008);S.add(earth,earthB);
+const clouds=new THREE.Mesh(new THREE.SphereGeometry(1.012,128,80),new THREE.MeshPhongMaterial({map:cloudTex,transparent:true,depthWrite:false,opacity:.9}));S.add(clouds);
+const atm=new THREE.Mesh(new THREE.SphereGeometry(1.13,96,64),new THREE.ShaderMaterial({side:THREE.BackSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ uniforms:{c:{value:new THREE.Color("#5aa8ff")}},vertexShader:"varying vec3 n;varying vec3 vp;void main(){n=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vp=p.xyz;gl_Position=projectionMatrix*p;}",
+ fragmentShader:"uniform vec3 c;varying vec3 n;varying vec3 vp;void main(){float f=pow(clamp(.72-dot(n,normalize(-vp))*-1.,0.,1.),3.2);gl_FragColor=vec4(c,f*1.15);}"}));S.add(atm);
+const halo=new THREE.Mesh(new THREE.SphereGeometry(1.015,96,64),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ uniforms:{c:{value:new THREE.Color("#7cc4ff")}},vertexShader:"varying vec3 n;varying vec3 vp;void main(){n=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vp=p.xyz;gl_Position=projectionMatrix*p;}",
+ fragmentShader:"uniform vec3 c;varying vec3 n;varying vec3 vp;void main(){float f=pow(1.-max(0.,dot(n,normalize(-vp))),2.6);gl_FragColor=vec4(c,f*.75);}"}));S.add(halo);
+{const n=1600,p=new Float32Array(n*3);for(let i=0;i<n;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(30+Math.random()*30);p.set([v.x,v.y,v.z],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(p,3));S.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:.09,sizeAttenuation:true,transparent:true,opacity:.75})))}
+function size(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?52:36;cam.updateProjectionMatrix()}addEventListener("resize",size);size();
+// ---- markers
+const MK=$("#mk"),marks=FINDS.map(f=>{const d=DD[f.id],b=document.createElement("button");b.className="m";b.style.setProperty("--c",PC[d.era]);
+ b.innerHTML=`<span class="dot"></span><span class="pic" style="background-image:url(img/${f.id}.jpg)"></span><span class="lb">${d.ru}</span>`;b.setAttribute("aria-label",d.ru+", "+f.place);
+ b.onclick=e=>{e.stopPropagation();openCard(f.id)};MK.appendChild(b);return{f,d,b,k:-1,pos:{},cur:new THREE.Vector3(),grp:0,gi:0}});
+// finds at the same spot fan out around it when you zoom in
+{const G={};marks.forEach(m=>{const key=Math.round(m.f.lat*2)+","+Math.round(m.f.lon*2);(G[key]=G[key]||[]).push(m)});Object.values(G).forEach(a=>a.forEach((m,i)=>{m.grp=a.length;m.gi=i}))}
+let era=ERAS[2],from=null,tw=1,P0={};
+function posFor(m,e){if(!m.pos[e.k]){const[la,lo]=paleo(m.f.lat,m.f.lon,m.k,e.t);m.pos[e.k]=v3(la,lo,1.006)}return m.pos[e.k]}
+function visible(m){return era.k==="N"||m.d.era===era.k}
+function setEra(e,instant){if(e===era&&!instant)return;from=era;era=e;document.documentElement.style.setProperty("--pc",e.c);
+ document.querySelectorAll(".eras button").forEach(b=>b.classList.toggle("on",b.dataset.k===e.k));
+ const T=texFor(e.t);mB.map=T.map;mB.specularMap=T.spec;mB.needsUpdate=true;mB.opacity=0;tw=instant?1:0;
+ marks.forEach(m=>{P0[m.f.id]=m.cur.clone();posFor(m,e)});
+ const n=marks.filter(visible).length;$("#count").innerHTML=`<b>${n}</b>${e.k==="N"?"мест находок":"динозавров этого периода"}`;closeCard()}
+// ---- card
+const card=$("#card");let sel=null;
+function openCard(id){const d=DD[id],f=FINDS.find(x=>x.id===id),cr=DCRED[id];sel=id;marks.forEach(m=>m.b.classList.toggle("sel",m.f.id===id));
+ card.style.setProperty("--c",PC[d.era]);
+ card.innerHTML=`<div class="ph"><button class="x" aria-label="Закрыть">×</button><img src="img/${id}.jpg" alt="${d.ru}"></div><div class="bd">
+ <span class="tag">${PER[d.era]} · ${d.ma[0]}–${d.ma[1]} млн лет</span><h2>${d.ru}</h2><div class="lat">${d.lat}</div>
+ <div class="chips"><span>${String(d.len).replace(".",",")} м</span><span>${d.mass}</span><span>${d.diet}</span></div>
+ <div class="where"><b>Где нашли</b>${f.place}, ${f.country}<br>Формация ${f.formation}, ${f.found} г.</div>
+ <p class="fact">${d.fact}</p>${f.also?`<p class="also">Ещё находки: ${f.also}</p>`:""}
+ ${cr?`<span class="cred">Изображение: <a href="${cr.url}" target="_blank" rel="noopener">${cr.au}, ${cr.lic}</a></span>`:""}</div>`;
+ card.querySelector(".x").onclick=closeCard;card.classList.add("open");ctl.autoRotate=false;
+ const m=marks.find(x=>x.f.id===id);flyTo(m.cur)}
+function closeCard(){card.classList.remove("open");sel=null;marks.forEach(m=>m.b.classList.remove("sel"))}
+addEventListener("keydown",e=>{if(e.key==="Escape")closeCard()});
+let fly=null;function flyTo(p){const d=Math.min(cam.position.length(),2.1);fly={a:cam.position.clone(),b:p.clone().normalize().multiplyScalar(d),t:0}}
+// ---- loop
+const tmp=new THREE.Vector3(),camDir=new THREE.Vector3();let last=performance.now(),hintOff=false;
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+ if(fly){fly.t=Math.min(1,fly.t+dt/1.1);const e=fly.t<.5?2*fly.t*fly.t:1-Math.pow(-2*fly.t+2,2)/2;cam.position.copy(fly.a).lerp(fly.b,e).setLength(fly.a.length()+(fly.b.length()-fly.a.length())*e);if(fly.t>=1)fly=null}
+ ctl.update();clouds.rotation.y+=dt*.012;
+ if(tw<1){tw=Math.min(1,tw+dt/1.4);const e=tw*tw*(3-2*tw);mB.opacity=e;if(tw>=1){const T=texFor(era.t);mA.map=T.map;mA.specularMap=T.spec;mA.needsUpdate=true;mB.opacity=0}}
+ const e=tw*tw*(3-2*tw),dist=cam.position.length(),near=dist<2.8;MK.classList.toggle("near",near);
+ if(near&&!hintOff){hintOff=true;$("#hint").style.opacity=0}
+ camDir.copy(cam.position).normalize();const W=innerWidth,H=innerHeight;
+ clouds.material.opacity=Math.max(.3,Math.min(.9,(dist-1.9)*.75+.3));
+ const on=[];
+ for(const m of marks){const tgt=m.pos[era.k],p0=P0[m.f.id]||tgt;m.cur.copy(p0).lerp(tgt,e).normalize().multiplyScalar(1.006);
+  const facing=m.cur.clone().normalize().dot(camDir)-1/dist;const show=visible(m)&&facing>0.02;
+  if(!show){if(!m.b.classList.contains("hide"))m.b.classList.add("hide");continue}m.b.classList.remove("hide");
+  tmp.copy(m.cur).project(cam);m.x=(tmp.x*.5+.5)*W;m.y=(-tmp.y*.5+.5)*H;m.fc=facing;on.push(m)}
+ // pictures that land on top of each other gently push apart so every one stays tappable
+ if(near){const G=Math.min(64,W/7);for(let it=0;it<6;it++)for(let i=0;i<on.length;i++)for(let j=i+1;j<on.length;j++){const a=on[i],b=on[j];let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
+  if(d>=G)continue;if(d<.01){dx=Math.cos(i+j);dy=Math.sin(i+j);d=1}const k=(G-d)/2/d;a.x-=dx*k;a.y-=dy*k;b.x+=dx*k;b.y+=dy*k}}
+ for(const m of on){m.b.style.transform=`translate(${m.x.toFixed(1)}px,${m.y.toFixed(1)}px)`;m.b.style.zIndex=Math.round(m.fc*100)}
+ R.render(S,cam);requestAnimationFrame(loop)}
+// ---- start once the plate map is loaded
+window.onPlates=()=>{marks.forEach(m=>{m.k=plateAt(m.f.lat,m.f.lon)});
+ const nav=$("#eras");ERAS.forEach(e=>{const b=document.createElement("button");b.dataset.k=e.k;b.style.setProperty("--c",e.c);b.innerHTML=`${e.n}<small>${e.note}</small>`;b.onclick=()=>setEra(e);nav.appendChild(b)});
+ const T=texFor(era.t);mA.map=T.map;mA.specularMap=T.spec;mA.needsUpdate=true;marks.forEach(m=>{posFor(m,era);m.cur.copy(m.pos[era.k])});setEra(era,true);
+ // point the camera at the northern Atlantic first, then build the other periods in the background
+ cam.position.copy(v3(30,-40,3.6));ctl.update();$("#load").classList.add("done");requestAnimationFrame(loop);
+ let q=ERAS.filter(x=>x!==era);const next=()=>{const x=q.shift();if(!x)return;texFor(x.t);marks.forEach(m=>posFor(m,x));setTimeout(next,60)};setTimeout(next,400)};
+if(window.__platesReady)onPlates();
+cv.addEventListener("click",()=>closeCard());
+</script>
+</body></html>
